@@ -1,0 +1,66 @@
+name: Introduce Interesting Article
+description: Share an interesting article, highlighting its significance and key points
+title: "[Article]: "
+labels: ["article"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for sharing an interesting article! Please fill out the information below.
+
+  - type: input
+    id: article-title
+    attributes:
+      label: Article Title
+      description: What is the title of the article?
+      placeholder: e.g., The Future of Artificial Intelligence
+    validations:
+      required: true
+
+  - type: input
+    id: article-link
+    attributes:
+      label: Article Link
+      description: Provide a link to the article
+      placeholder: https://example.com/article
+    validations:
+      required: true
+
+  - type: input
+    id: author
+    attributes:
+      label: Author
+      description: Who wrote this article?
+      placeholder: e.g., John Doe
+    validations:
+      required: false
+
+  - type: textarea
+    id: significance
+    attributes:
+      label: Why is this article significant?
+      description: Explain why this article is interesting or important
+      placeholder: Describe what makes this article worth reading...
+    validations:
+      required: true
+
+  - type: textarea
+    id: key-points
+    attributes:
+      label: Key Points
+      description: List the main takeaways from the article
+      placeholder: |
+        - Key point 1
+        - Key point 2
+        - Key point 3
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-notes
+    attributes:
+      label: Additional Notes
+      description: Any other thoughts or context you'd like to share
+      placeholder: Add any additional comments here...
+    validations:
+      required: false
