@@ -1,6 +1,6 @@
 name: Article to Read
 description: Capture an article you want to read later
-title: ""
+title: "Article to Read"
 labels: ["article"]
 body:
   - type: markdown
