@@ -1,0 +1,94 @@
+name: Daily Reading Reminder
+
+on:
+  schedule:
+    # Run daily at 9:00 AM JST (00:00 UTC)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allow manual triggering for testing
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  create-daily-reading:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create daily reading issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            const issueTitle = `Today's reading (${today})`;
+
+            // Check if today's reading issue already exists
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'daily-reading'
+            });
+
+            const todayIssueExists = existingIssues.data.some(
+              issue => issue.title === issueTitle
+            );
+
+            if (todayIssueExists) {
+              console.log(`Daily reading issue for ${today} already exists. Skipping.`);
+              return;
+            }
+
+            // Get all open issues
+            const allIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'article',
+              per_page: 100
+            });
+
+            // Filter issues with due date matching today
+            const dueToday = [];
+            const dueDateRegex = /due:\s*(\d{4}-\d{2}-\d{2})/;
+
+            for (const issue of allIssues.data) {
+              if (issue.labels.some(label => label.name === 'daily-reading')) {
+                continue; // Skip daily reading issues
+              }
+
+              const match = issue.body?.match(dueDateRegex);
+              if (match && match[1] === today) {
+                dueToday.push(issue);
+              }
+            }
+
+            if (dueToday.length === 0) {
+              console.log(`No articles due today (${today}). Skipping daily reading issue creation.`);
+              return;
+            }
+
+            // Create issue body with list of due articles
+            let issueBody = `# Articles to read today\n\n`;
+            issueBody += `Found ${dueToday.length} article(s) due today:\n\n`;
+
+            for (const issue of dueToday) {
+              issueBody += `- [#${issue.number}](${issue.html_url}) - ${issue.title}\n`;
+            }
+
+            issueBody += `\n---\n\n`;
+            issueBody += `This issue was automatically created by the daily reading reminder workflow.\n`;
+            issueBody += `Close this issue when you've reviewed today's reading list.`;
+
+            // Create the daily reading issue
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: issueTitle,
+              body: issueBody,
+              labels: ['daily-reading']
+            });
+
+            console.log(`Created daily reading issue for ${today} with ${dueToday.length} article(s).`);

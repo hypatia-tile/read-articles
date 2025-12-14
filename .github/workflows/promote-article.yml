@@ -1,0 +1,178 @@
+name: Promote Article to Knowledge Base
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to promote'
+        required: true
+        type: number
+
+permissions:
+  issues: write
+  contents: write
+
+jobs:
+  promote-article:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get issue details and create markdown file
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = ${{ github.event.inputs.issue_number }};
+
+            // Fetch the issue
+            const { data: issue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber
+            });
+
+            console.log(`Fetched issue #${issueNumber}: ${issue.title}`);
+
+            // Extract article information from issue body
+            const body = issue.body || '';
+
+            // Parse the issue template fields
+            const extractField = (fieldName) => {
+              const regex = new RegExp(`### ${fieldName}\\s*([\\s\\S]*?)(?=###|$)`, 'i');
+              const match = body.match(regex);
+              return match ? match[1].trim() : '';
+            };
+
+            const articleTitle = extractField('Article Title') || issue.title.replace('[Article]: ', '');
+            const articleLink = extractField('Article Link');
+            const author = extractField('Author');
+            const significance = extractField('Why is this article significant?');
+            const keyPoints = extractField('Key Points');
+            const additionalNotes = extractField('Additional Notes');
+
+            // Create sanitized filename from issue title
+            const sanitize = (str) => {
+              return str
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .substring(0, 100);
+            };
+
+            const filename = `${sanitize(articleTitle)}.md`;
+            const filepath = `articles/${filename}`;
+
+            // Get category labels
+            const categoryLabels = issue.labels
+              .filter(label => label.name.startsWith('topic:'))
+              .map(label => label.name);
+
+            // Create markdown content
+            const timestamp = new Date().toISOString().split('T')[0];
+
+            let markdown = `---\n`;
+            markdown += `title: "${articleTitle}"\n`;
+            markdown += `url: ${articleLink}\n`;
+            if (author) markdown += `author: ${author}\n`;
+            if (categoryLabels.length > 0) {
+              markdown += `categories:\n${categoryLabels.map(c => `  - ${c}`).join('\n')}\n`;
+            }
+            markdown += `promoted_from_issue: ${issueNumber}\n`;
+            markdown += `date_promoted: ${timestamp}\n`;
+            markdown += `---\n\n`;
+
+            markdown += `# ${articleTitle}\n\n`;
+            markdown += `**URL:** ${articleLink}\n\n`;
+            if (author) markdown += `**Author:** ${author}\n\n`;
+
+            if (significance) {
+              markdown += `## Why This Article is Significant\n\n${significance}\n\n`;
+            }
+
+            if (keyPoints) {
+              markdown += `## Key Points\n\n${keyPoints}\n\n`;
+            }
+
+            markdown += `## Summary\n\n`;
+            markdown += `*[Add your summary after reading the article]*\n\n`;
+
+            markdown += `## Interesting Points\n\n`;
+            markdown += `*[Document what you found interesting]*\n\n`;
+
+            markdown += `## Unfamiliar Points\n\n`;
+            markdown += `*[Note concepts or terms that were unfamiliar]*\n\n`;
+
+            if (additionalNotes) {
+              markdown += `## Additional Notes\n\n${additionalNotes}\n\n`;
+            }
+
+            markdown += `---\n\n`;
+            markdown += `*Promoted from issue [#${issueNumber}](${issue.html_url}) on ${timestamp}*\n`;
+
+            // Write the file
+            const fs = require('fs');
+            const path = require('path');
+
+            // Create articles directory if it doesn't exist
+            const articlesDir = path.join(process.env.GITHUB_WORKSPACE, 'articles');
+            if (!fs.existsSync(articlesDir)) {
+              fs.mkdirSync(articlesDir, { recursive: true });
+            }
+
+            const fullPath = path.join(process.env.GITHUB_WORKSPACE, filepath);
+            fs.writeFileSync(fullPath, markdown);
+
+            console.log(`Created markdown file: ${filepath}`);
+
+            // Return filepath for the next step
+            return { filepath, issueNumber, articleTitle };
+
+      - name: Commit and push markdown file
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add articles/
+          git commit -m "feat(articles): promote issue #${{ github.event.inputs.issue_number }} to knowledge base"
+          git push
+
+      - name: Add comment to issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = ${{ github.event.inputs.issue_number }};
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: `This article has been promoted to the knowledge base! :tada:\n\nYou can find the markdown file in the repository.\n\nPlease fill in the Summary, Interesting Points, and Unfamiliar Points sections after reading.`
+            });
+
+            console.log(`Added comment to issue #${issueNumber}`);
+
+      - name: Close and label the issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = ${{ github.event.inputs.issue_number }};
+
+            // Add 'promoted' label
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              labels: ['promoted']
+            });
+
+            // Close the issue
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              state: 'closed'
+            });
+
+            console.log(`Closed and labeled issue #${issueNumber}`);
