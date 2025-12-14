@@ -1,12 +1,12 @@
-name: Introduce Interesting Article
-description: Share an interesting article, highlighting its significance and key points
-title: "[Article]: "
+name: Article to Read
+description: Capture an article you want to read later
+title: ""
 labels: ["article"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for sharing an interesting article! Please fill out the information below.
+        Quickly capture an article to read. Only title and URL are required - add scheduling and notes as needed.
 
   - type: input
     id: article-title
@@ -18,49 +18,35 @@ body:
       required: true
 
   - type: input
-    id: article-link
+    id: article-url
     attributes:
-      label: Article Link
-      description: Provide a link to the article
+      label: Article URL
+      description: Provide the link to the article
       placeholder: https://example.com/article
     validations:
       required: true
 
   - type: input
-    id: author
+    id: due-date
     attributes:
-      label: Author
-      description: Who wrote this article?
-      placeholder: e.g., John Doe
+      label: Due Date (Optional)
+      description: When do you want to read this? Format YYYY-MM-DD
+      placeholder: e.g., 2025-12-20
     validations:
       required: false
 
   - type: textarea
-    id: significance
+    id: initial-notes
     attributes:
-      label: Why is this article significant?
-      description: Explain why this article is interesting or important
-      placeholder: Describe what makes this article worth reading...
-    validations:
-      required: true
-
-  - type: textarea
-    id: key-points
-    attributes:
-      label: Key Points
-      description: List the main takeaways from the article
+      label: Initial Notes (Optional)
+      description: Why does this look interesting? Any context or key points to remember?
       placeholder: |
-        - Key point 1
-        - Key point 2
-        - Key point 3
-    validations:
-      required: true
-
-  - type: textarea
-    id: additional-notes
-    attributes:
-      label: Additional Notes
-      description: Any other thoughts or context you'd like to share
-      placeholder: Add any additional comments here...
+        Quick thoughts on why this caught your attention...
     validations:
       required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        **Categorization**: After creating the issue, add topic labels in the format `topic:category/subcategory` (e.g., `topic:pl/compilers`, `topic:math/category-theory`)
