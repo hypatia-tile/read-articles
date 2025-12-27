@@ -1,5 +1,7 @@
 # Git and GitHub
 
+- [ ] https://github.com/marketplace/actions/create-an-issue
+- [ ] https://zenn.dev/ganariya/articles/platex-github-action
 - [ ] https://docs.github.com/en/actions/concepts/security/github_token
 - [ ] https://dev.to/sre_panchanan/hello-world-in-github-actions-a-beginners-guide-to-your-first-workflow-1mbh
 - [ ] https://docs.github.com/en/get-started/showcase-your-expertise-with-github-certifications/about-github-certifications
